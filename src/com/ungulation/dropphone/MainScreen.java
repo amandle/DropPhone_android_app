@@ -42,6 +42,7 @@ public class MainScreen extends Activity implements AccelerometerListener {
     private static final float FALLING_THRESHOLD = 2.0f;
     private static final double FALL_DURATION_THRESHOLD = 100; //milliseconds
     private int current_state = STATE_NOT_FALLING;
+    private static final String BASE_URL = "https://dropphoneapp.appspot.com";
     
     /**
      * Called when the activity is first created.
@@ -99,7 +100,7 @@ public class MainScreen extends Activity implements AccelerometerListener {
 
         new AlertDialog.Builder(this)
                 .setTitle("Your rank")
-                .setMessage("Your last score was ranked #" + String.valueOf(rank))
+                .setMessage("Your time of " + String.valueOf(time_fallen_seconds)+ " ms was ranked #" + String.valueOf(rank) + " in the world.")
                 .setNeutralButton("Ok", null)
                 .show();
 
@@ -110,17 +111,15 @@ public class MainScreen extends Activity implements AccelerometerListener {
 
     private int submitscore(String username, double score){
 
-//        HttpClient httpclient = new DefaultHttpClient();
-//        HttpPost httppost = new HttpPost("http://192.168.1.2:8080/app/newscore");
         String string_score = "";
         try{
             username = URLEncoder.encode(username, "utf-8");
             string_score = URLEncoder.encode(String.valueOf(score), "utf-8");
         } catch (Exception e){
-            String address = "http://192.168.1.2:8080/app/newscore?username="+username+"&score="+string_score;
+            //
         }
 
-        String address = "http://192.168.1.2:8080/app/newscore?username="+username+"&score="+String.valueOf(score);
+        String address = BASE_URL+"/app/newscore?username="+username+"&score="+String.valueOf(score);
         int rank = 1000;
         try{
             JSONObject json = RestJsonClient.connect_post(address);
@@ -129,28 +128,6 @@ public class MainScreen extends Activity implements AccelerometerListener {
             // handle it or something
         }
 
-
-//        try {
-//            // Add your data
-//            List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-//            nameValuePairs.add(new BasicNameValuePair("score", String.valueOf(score)));
-//            Log.d("dropphone", username);
-//            nameValuePairs.add(new BasicNameValuePair("username", username));
-//            httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-//            // Execute HTTP Post Request
-//            HttpResponse response = httpclient.execute(httppost);
-//            HttpEntity entity = response.getEntity();
-//            if (entity != null) {
-//                InputStream instream = entity.getContent();
-//                int l;
-//                byte[] tmp = new byte[2048];
-//                while ((l = instream.read(tmp)) != -1) {
-//                    //read it
-//                }
-//            }
-//        } catch (Exception e) {
-//            // TODO Auto-generated catch block
-//        }
         return rank;
     }
 
