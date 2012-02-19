@@ -1,13 +1,33 @@
 package com.ungulation.dropphone;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainScreen extends Activity implements AccelerometerListener {
     private static Context CONTEXT;
@@ -32,6 +52,20 @@ public class MainScreen extends Activity implements AccelerometerListener {
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main);
+        new AlertDialog.Builder(this)
+                .setTitle("Warning!")
+                .setMessage("Gravity is a cruel mistress.  You are solely responsible for anything bad that happens while using this app.")
+                .setNegativeButton("I\'m afraid.",new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        finish();
+                        System.exit(0);
+                    }
+                })
+                .setPositiveButton("Okay, sounds good", null)
+                .show();
+
+
 
         CONTEXT = this;
     }
@@ -51,11 +85,74 @@ public class MainScreen extends Activity implements AccelerometerListener {
 
     }
 
+    public void wimpOut(View whatever) {
+        super.onDestroy();
+    }
+
     public void submitScore(View whatever) {
+        //submit the score
+        EditText username_input = ((EditText) findViewById(R.id.edtInput));
+        String username = username_input.getText().toString();
+        ProgressDialog progress = ProgressDialog.show(CONTEXT,"Please wait...", "Submitting your score");
+        int rank = submitscore(username, time_fallen_seconds);
+        progress.dismiss();
+
+        new AlertDialog.Builder(this)
+                .setTitle("Your rank")
+                .setMessage("Your last score was ranked #" + String.valueOf(rank))
+                .setNeutralButton("Ok", null)
+                .show();
+
+
         setContentView(R.layout.main);
         AccelerometerManager.startListening(this);
     }
 
+    private int submitscore(String username, double score){
+
+//        HttpClient httpclient = new DefaultHttpClient();
+//        HttpPost httppost = new HttpPost("http://192.168.1.2:8080/app/newscore");
+        String string_score = "";
+        try{
+            username = URLEncoder.encode(username, "utf-8");
+            string_score = URLEncoder.encode(String.valueOf(score), "utf-8");
+        } catch (Exception e){
+            String address = "http://192.168.1.2:8080/app/newscore?username="+username+"&score="+string_score;
+        }
+
+        String address = "http://192.168.1.2:8080/app/newscore?username="+username+"&score="+String.valueOf(score);
+        int rank = 1000;
+        try{
+            JSONObject json = RestJsonClient.connect_post(address);
+            rank = json.getInt("rank");
+        } catch (JSONException e) {
+            // handle it or something
+        }
+
+
+//        try {
+//            // Add your data
+//            List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
+//            nameValuePairs.add(new BasicNameValuePair("score", String.valueOf(score)));
+//            Log.d("dropphone", username);
+//            nameValuePairs.add(new BasicNameValuePair("username", username));
+//            httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+//            // Execute HTTP Post Request
+//            HttpResponse response = httpclient.execute(httppost);
+//            HttpEntity entity = response.getEntity();
+//            if (entity != null) {
+//                InputStream instream = entity.getContent();
+//                int l;
+//                byte[] tmp = new byte[2048];
+//                while ((l = instream.read(tmp)) != -1) {
+//                    //read it
+//                }
+//            }
+//        } catch (Exception e) {
+//            // TODO Auto-generated catch block
+//        }
+        return rank;
+    }
 
     public void onAccelerationChanged(float x, float y, float z, long timestamp) {
         //ignore timestamps older thant .5 seconds
@@ -82,16 +179,15 @@ public class MainScreen extends Activity implements AccelerometerListener {
                     if(time_fallen_seconds > max_time_fallen_seconds){
                         max_time_fallen_seconds = time_fallen_seconds;
                         ((TextView) findViewById(R.id.main_text)).setText("New high score! " + String.valueOf(time_fallen_seconds) + " milliseconds");
-                        //ask the server if this is a high score...
-
-                        //if it is...
                         AccelerometerManager.stopListening();
                         setContentView(R.layout.input);
+
                         try{
                             ((TextView) findViewById(R.id.yourscore)).setText("Your score: " + String.valueOf(time_fallen_seconds));
                         }catch (Exception e){
                             //
                         }
+
                         start_time_nanoseconds = System.nanoTime();
                         current_state = STATE_NOT_FALLING;
                         return;

@@ -11,7 +11,7 @@
             android:textSize="30px"
             android:padding="20px"
 
-            android:text="Congratulations!"/>
+            android:text="Nice one!"/>
     <TextView
             android:id="@+id/yourscore"
             android:layout_width="fill_parent"
@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:textSize="25px"
             android:padding="20px"
-            android:text="You made it onto the worldwide DropPhone leaderbaord!"/>
+            android:text="Enter your name to add your score to the leaderboard"/>
     <EditText android:id="@+id/edtInput"
               android:layout_width="200dip"
               android:layout_height="70dip"
