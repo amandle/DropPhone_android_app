@@ -13,21 +13,12 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.InputStream;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class MainScreen extends Activity implements AccelerometerListener {
     private static Context CONTEXT;
@@ -43,7 +34,9 @@ public class MainScreen extends Activity implements AccelerometerListener {
     private static final double FALL_DURATION_THRESHOLD = 100; //milliseconds
     private int current_state = STATE_NOT_FALLING;
     private static final String BASE_URL = "https://dropphoneapp.appspot.com";
-    
+//    private static final String BASE_URL = "http://192.168.1.2:8080";
+    private static final String SHARED_SECRET = "Phasuca6a4eCRU84b7eVUnA55asWaspazEDuw4maDRUS8uhE5AsuwE7aPUTe6ru9";
+
     /**
      * Called when the activity is first created.
      */
@@ -109,7 +102,7 @@ public class MainScreen extends Activity implements AccelerometerListener {
         AccelerometerManager.startListening(this);
     }
 
-    private int submitscore(String username, double score){
+    private int submitscore(String username, double score)  {
 
         String string_score = "";
         try{
@@ -118,8 +111,30 @@ public class MainScreen extends Activity implements AccelerometerListener {
         } catch (Exception e){
             //
         }
+        MessageDigest algorithm;
+        try {
+          algorithm = MessageDigest.getInstance("SHA-1");
+        } catch (Exception e) {
+          return -1;
+        }
+        algorithm.reset();
+        algorithm.update(username.getBytes());
+        algorithm.update(string_score.getBytes());
+        algorithm.update(SHARED_SECRET.getBytes());
+        byte messageDigest[] = algorithm.digest();
 
-        String address = BASE_URL+"/app/newscore?username="+username+"&score="+String.valueOf(score);
+        StringBuffer hexString = new StringBuffer();
+        for (int i=0;i<messageDigest.length;i++) {
+            String hex = Integer.toHexString(0xFF & messageDigest[i]);
+            if (hex.length() == 1) {
+                // could use a for loop, but we're only dealing with a single byte
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+
+
+        String address = BASE_URL+"/app/newscore?username="+username+"&score="+string_score+"&hash="+hexString;
         int rank = 1000;
         try{
             JSONObject json = RestJsonClient.connect_post(address);
@@ -139,39 +154,24 @@ public class MainScreen extends Activity implements AccelerometerListener {
         double sum = x*x + y*y + z*z;
         double magnitude = Math.sqrt(sum);
         boolean falling = magnitude < FALLING_THRESHOLD;
-        try{
-            ((TextView) findViewById(R.id.y)).setText(String.valueOf(y));
-            ((TextView) findViewById(R.id.z)).setText(String.valueOf(z));
-            ((TextView) findViewById(R.id.min_mag)).setText(String.valueOf(magnitude));
-            ((TextView) findViewById(R.id.timefallen)).setText(String.valueOf(max_time_fallen_seconds));
-        } catch (Exception e) {
-            return;
-        }
 
         if(current_state == STATE_FALLING){
             if(!falling){
                 //if we stop falling... calculate the time we fell
                 time_fallen_seconds = (timestamp - start_time_nanoseconds)/(1000000f);
                 if(time_fallen_seconds > FALL_DURATION_THRESHOLD ){
-                    if(time_fallen_seconds > max_time_fallen_seconds){
-                        max_time_fallen_seconds = time_fallen_seconds;
-                        ((TextView) findViewById(R.id.main_text)).setText("New high score! " + String.valueOf(time_fallen_seconds) + " milliseconds");
-                        AccelerometerManager.stopListening();
-                        setContentView(R.layout.input);
+                    ((TextView) findViewById(R.id.main_text)).setText("New high score! " + String.valueOf(time_fallen_seconds) + " milliseconds");
+                    AccelerometerManager.stopListening();
+                    setContentView(R.layout.input);
 
-                        try{
-                            ((TextView) findViewById(R.id.yourscore)).setText("Your score: " + String.valueOf(time_fallen_seconds));
-                        }catch (Exception e){
-                            //
-                        }
-
-                        start_time_nanoseconds = System.nanoTime();
-                        current_state = STATE_NOT_FALLING;
-                        return;
-                    } else {
-                        ((TextView) findViewById(R.id.main_text)).setText("You fell for " + String.valueOf(time_fallen_seconds)  + " milliseconds");
+                    try{
+                        ((TextView) findViewById(R.id.yourscore)).setText("Your score: " + String.valueOf(time_fallen_seconds));
+                    }catch (Exception e){
+                        //
                     }
 
+                    start_time_nanoseconds = System.nanoTime();
+                    current_state = STATE_NOT_FALLING;
                     return;
                 }
                 current_state = STATE_NOT_FALLING;
