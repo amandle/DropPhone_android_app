@@ -19,6 +19,7 @@ import org.json.JSONObject;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 
 public class MainScreen extends Activity implements AccelerometerListener {
     private static Context CONTEXT;
@@ -93,7 +94,7 @@ public class MainScreen extends Activity implements AccelerometerListener {
 
         new AlertDialog.Builder(this)
                 .setTitle("Your rank")
-                .setMessage("Your time of " + String.valueOf(time_fallen_seconds)+ " ms was ranked #" + String.valueOf(rank) + " in the world.")
+                .setMessage("Your time of " + String.valueOf(new DecimalFormat("#####.##").format(time_fallen_seconds))+ " ms was ranked #" + String.valueOf(rank) + " in the world.")
                 .setNeutralButton("Ok", null)
                 .show();
 
@@ -113,12 +114,12 @@ public class MainScreen extends Activity implements AccelerometerListener {
         }
         MessageDigest algorithm;
         try {
-          algorithm = MessageDigest.getInstance("SHA-1");
+          algorithm = MessageDigest.getInstance("MD5");
         } catch (Exception e) {
           return -1;
         }
         algorithm.reset();
-        algorithm.update(username.getBytes());
+//        algorithm.update(username.getBytes());
         algorithm.update(string_score.getBytes());
         algorithm.update(SHARED_SECRET.getBytes());
         byte messageDigest[] = algorithm.digest();
@@ -165,12 +166,11 @@ public class MainScreen extends Activity implements AccelerometerListener {
                     setContentView(R.layout.input);
 
                     try{
-                        ((TextView) findViewById(R.id.yourscore)).setText("Your score: " + String.valueOf(time_fallen_seconds));
+                        ((TextView) findViewById(R.id.yourscore)).setText("Your score: " + String.valueOf(new DecimalFormat("#####.##").format(time_fallen_seconds)) + "ms");
                     }catch (Exception e){
                         //
                     }
 
-                    start_time_nanoseconds = System.nanoTime();
                     current_state = STATE_NOT_FALLING;
                     return;
                 }
